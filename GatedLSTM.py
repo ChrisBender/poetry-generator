@@ -8,7 +8,7 @@ import nltk.tokenize.moses as moses
 
 class GatedLSTM(nn.Module):
 
-    def __init__(self, word2i, i2word, chars, word_hidden_size, char_hidden_size,
+    def __init__(self, word2i, i2word, glove_embedding, chars, word_hidden_size, char_hidden_size,
                  word_num_layers, char_num_layers, dropout, use_cuda):
 
         super().__init__()
@@ -19,8 +19,16 @@ class GatedLSTM(nn.Module):
         assert type(word2i) == dict and type(i2word) == dict and len(word2i) == len(i2word), \
             'Malformed word lookup tables.'
 
+        if use_cuda:
+            self.float_tensor = torch.cuda.FloatTensor
+            self.long_tensor = torch.cuda.LongTensor
+        else:
+            self.float_tensor = torch.FloatTensor
+            self.long_tensor = torch.LongTensor
+
         self.word2i = word2i
         self.i2word = i2word
+        self.glove_embedding = glove_embedding.type(self.float_tensor)
         self.chars = chars
         self.word_hidden_size = word_hidden_size
         self.char_hidden_size = char_hidden_size
@@ -29,7 +37,8 @@ class GatedLSTM(nn.Module):
         self.word_vocab_size = len(word2i)
         self.char_vocab_size = len(chars) + len(self.tags)
 
-        self.word_encoder = nn.Embedding(self.word_vocab_size, self.word_hidden_size)
+        # self.word_encoder = nn.Embedding(self.word_vocab_size, self.word_hidden_size)
+        self.word_encoder = lambda x_word: self.glove_embedding[x_word, :]
         self.word_lstm = nn.LSTM(self.word_hidden_size, self.word_hidden_size, self.word_num_layers, dropout = dropout)
         self.word_decoder = nn.Linear(self.word_hidden_size, self.word_vocab_size)
 
@@ -37,16 +46,9 @@ class GatedLSTM(nn.Module):
         self.char_lstm = nn.LSTM(self.char_hidden_size, self.char_hidden_size, self.char_num_layers, dropout = dropout)
         # self.char_decoder = nn.Linear(self.char_hidden_size, self.char_vocab_size)
 
-        if use_cuda:
-            self.float_tensor = torch.cuda.FloatTensor
-            self.long_tensor = torch.cuda.LongTensor
-        else:
-            self.float_tensor = torch.FloatTensor
-            self.long_tensor = torch.LongTensor
-
-        self.char_to_embedding = Variable(torch.zeros(self.word_hidden_size, self.char_hidden_size)).type(self.float_tensor)
-        self.x_word_to_g_weight = Variable(torch.zeros(self.word_hidden_size)).type(self.float_tensor)
-        self.x_word_to_g_bias = Variable(torch.zeros(1)).type(self.float_tensor)
+        self.char_to_embedding = nn.Parameter(torch.randn(self.word_hidden_size, self.char_hidden_size)).type(self.float_tensor)
+        self.x_word_to_g_weight = nn.Parameter(torch.randn(self.word_hidden_size)).type(self.float_tensor)
+        self.x_word_to_g_bias = nn.Parameter(torch.randn(1)).type(self.float_tensor)
 
     def forward(self, x_word, h_word, h_char):
 

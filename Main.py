@@ -13,26 +13,24 @@ import pickle
 
 epochs = 25
 learning_rate = 0.001
-dropout = 0.9
+dropout = 0.5
 # word_hidden_size = 512
 # char_hidden_size = 256
 # word_num_layers = 3
 # char_num_layers = 3
-word_hidden_size = 126
-char_hidden_size = 126
-word_num_layers = 2
-char_num_layers = 1
+word_hidden_size = 300
+char_hidden_size = 256
+word_num_layers = 3
+char_num_layers = 3
 print_example_every = 1
 training_testing_split = 0.90
 use_pretrained_model = False
-use_cuda_when_available = False
+use_cuda_when_available = True
 reparse_corpus = True
 retrain_glove = True
 write_losses_to_file = True
 quiet = False
 
-print("* dout = {0} *".format(dropout))
-print("* word_hidden = {0} *".format(word_hidden_size))
 
 if reparse_corpus:
     parse_corpus()
@@ -78,6 +76,13 @@ print("*** Num testing poems: {0} ***".format(testing_num_poems))
 print("*** Vocabulary size: {0} ***".format(num_distinct_words))
 
 
+with open('./models/glove', 'rb') as file:
+    glove_dict = pickle.load(file)
+
+l_embed, r_embed = glove_dict['l_embed'], glove_dict['r_embed']
+l_embed, r_embed = torch.stack(l_embed).squeeze(2), torch.stack(r_embed).squeeze(2)
+
+
 def split_poem(poem):
     input = net.words_to_tensor(poem[:-1])
     output = net.words_to_tensor(poem[1:])
@@ -106,9 +111,8 @@ def train(input, output, update_model=True):
 
     return loss.data[0] / total_length
 
-
 chars_vocabulary = "0123456789abcdefghijklmnopqrstuvwxyz!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c"
-net = GatedLSTM(word2i, i2word, chars_vocabulary, word_hidden_size, char_hidden_size,
+net = GatedLSTM(word2i, i2word, l_embed + r_embed, chars_vocabulary, word_hidden_size, char_hidden_size,
                 word_num_layers, char_num_layers, dropout, use_cuda)
 
 num_params = 0
@@ -136,7 +140,7 @@ if use_cuda:
     net.cuda()
 print("RecurrentNetWord:", net)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(net.parameters(), lr = learning_rate)
+optimizer = optim.Adam(net.parameters(), lr=learning_rate)
 
 print("*** Splitting poems ... ***")
 

@@ -5,11 +5,11 @@ import torch.optim as optim
 import pickle
 
 # Set parameters
-epochs = 5
+epochs = 30
 learning_rate = 0.001
 batch_size = 20
 context_size = 10
-embed_size = 100
+embed_size = 300
 x_max = 100
 alpha = 0.75
 
