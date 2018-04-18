@@ -1,5 +1,5 @@
 # Vim temporary files
-*.swp
+*.sw[a-p]
 
 # Python cache
 __pycache__
