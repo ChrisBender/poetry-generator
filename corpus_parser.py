@@ -57,8 +57,12 @@ def parse_corpus(dataset_name):
 
     print("*** Finished parsing corpus. ***")
 
-if __name__ == "__main__":
-    
+
+def main():
     args = get_arguments('parser') 
     parse_corpus(args.dataset_name)
+
+
+if __name__ == "__main__":
+    main()    
 
