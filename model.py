@@ -8,8 +8,7 @@ import nltk.tokenize.moses as moses
 
 class GatedLSTM(nn.Module):
 
-    def __init__(self, word2i, i2word, glove_embedding, chars, word_hidden_size, char_hidden_size,
-                 word_num_layers, char_num_layers, dropout, use_cuda):
+    def __init__(self, args, word2i, i2word, glove_embeddings, chars, use_cuda):
 
         super().__init__()
 
@@ -29,26 +28,26 @@ class GatedLSTM(nn.Module):
         self.word2i = word2i
         self.i2word = i2word
         self.chars = chars
-        self.word_hidden_size = word_hidden_size
-        self.char_hidden_size = char_hidden_size
-        self.word_num_layers = word_num_layers
-        self.char_num_layers = char_num_layers
+        self.word_hidden_size = args.word_hidden_size
+        self.char_hidden_size = args.char_hidden_size
+        self.word_num_layers = args.word_num_layers
+        self.char_num_layers = args.char_num_layers
         self.word_vocab_size = len(word2i)
         self.char_vocab_size = len(chars) + len(self.tags)
 
-        if glove_embedding is None:
+        if glove_embeddings is None:
             self.word_encoder = nn.Embedding(self.word_vocab_size, self.word_hidden_size)
         else:
-            glove_embedding = glove_embedding.type(self.float_tensor)
-            self.word_encoder = lambda x_word: self.glove_embedding[x_word, :]
+            glove_embeddings = glove_embeddings.type(self.float_tensor)
+            self.word_encoder = lambda x_word: glove_embeddings[x_word, :]
         
         self.word_lstm = nn.LSTM(self.word_hidden_size, self.word_hidden_size, 
-                self.word_num_layers, dropout=dropout)
+                self.word_num_layers, dropout=args.dropout)
         self.word_decoder = nn.Linear(self.word_hidden_size, self.word_vocab_size)
 
         self.char_encoder = nn.Embedding(self.char_vocab_size, self.char_hidden_size)
         self.char_lstm = nn.LSTM(self.char_hidden_size, self.char_hidden_size, 
-                self.char_num_layers, dropout=dropout)
+                self.char_num_layers, dropout=args.dropout)
         # self.char_decoder = nn.Linear(self.char_hidden_size, self.char_vocab_size)
 
         self.char_to_embedding = nn.Parameter(
@@ -107,6 +106,11 @@ class GatedLSTM(nn.Module):
                 tensor[i] = self.chars.index(string[i])
 
         return Variable(tensor)
+
+    def split_poem(poem):
+        input = net.words_to_tensor(poem[:-1])
+        output = net.words_to_tensor(poem[1:])
+        return input, output
 
     def get_sample(self, init_string="SOP", max_length=250, temperature=0.8):
 

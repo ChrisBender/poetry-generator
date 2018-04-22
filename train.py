@@ -87,7 +87,7 @@ def main():
         glove_embeddings = None
 
     
-    net = GatedLSTM(args, word2i, i2word, glove_embeddings, chars_vocabulary) 
+    net = GatedLSTM(args, word2i, i2word, glove_embeddings, chars_vocabulary, use_cuda) 
 
     num_params = 0
     for param in list(net.parameters()):
