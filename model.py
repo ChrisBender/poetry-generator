@@ -13,7 +13,7 @@ class GatedLSTM(nn.Module):
 
         super().__init__()
 
-        self.tags = ('CAP', 'EOP')
+        self.tags = ('SOP', 'EOP', 'CAP')
         self.detokenizer = moses.MosesDetokenizer()
 
         assert type(word2i) == dict and type(i2word) == dict and len(word2i) == len(i2word), \
@@ -28,7 +28,6 @@ class GatedLSTM(nn.Module):
 
         self.word2i = word2i
         self.i2word = i2word
-        self.glove_embedding = glove_embedding.type(self.float_tensor)
         self.chars = chars
         self.word_hidden_size = word_hidden_size
         self.char_hidden_size = char_hidden_size
@@ -37,18 +36,30 @@ class GatedLSTM(nn.Module):
         self.word_vocab_size = len(word2i)
         self.char_vocab_size = len(chars) + len(self.tags)
 
-        # self.word_encoder = nn.Embedding(self.word_vocab_size, self.word_hidden_size)
-        self.word_encoder = lambda x_word: self.glove_embedding[x_word, :]
-        self.word_lstm = nn.LSTM(self.word_hidden_size, self.word_hidden_size, self.word_num_layers, dropout = dropout)
+        if glove_embedding is None:
+            self.word_encoder = nn.Embedding(self.word_vocab_size, self.word_hidden_size)
+        else:
+            glove_embedding = glove_embedding.type(self.float_tensor)
+            self.word_encoder = lambda x_word: self.glove_embedding[x_word, :]
+        
+        self.word_lstm = nn.LSTM(self.word_hidden_size, self.word_hidden_size, 
+                self.word_num_layers, dropout=dropout)
         self.word_decoder = nn.Linear(self.word_hidden_size, self.word_vocab_size)
 
         self.char_encoder = nn.Embedding(self.char_vocab_size, self.char_hidden_size)
-        self.char_lstm = nn.LSTM(self.char_hidden_size, self.char_hidden_size, self.char_num_layers, dropout = dropout)
+        self.char_lstm = nn.LSTM(self.char_hidden_size, self.char_hidden_size, 
+                self.char_num_layers, dropout=dropout)
         # self.char_decoder = nn.Linear(self.char_hidden_size, self.char_vocab_size)
 
-        self.char_to_embedding = nn.Parameter(torch.randn(self.word_hidden_size, self.char_hidden_size)).type(self.float_tensor)
-        self.x_word_to_g_weight = nn.Parameter(torch.randn(self.word_hidden_size)).type(self.float_tensor)
-        self.x_word_to_g_bias = nn.Parameter(torch.randn(1)).type(self.float_tensor)
+        self.char_to_embedding = nn.Parameter(
+                torch.randn(self.word_hidden_size, self.char_hidden_size)
+        ).type(self.float_tensor)
+        self.x_word_to_g_weight = nn.Parameter(
+                torch.randn(self.word_hidden_size)
+        ).type(self.float_tensor)
+        self.x_word_to_g_bias = nn.Parameter(
+                torch.randn(1)
+        ).type(self.float_tensor)
 
     def forward(self, x_word, h_word, h_char):
 
@@ -91,22 +102,36 @@ class GatedLSTM(nn.Module):
         else:
             tensor = torch.zeros(len(string)).type(self.long_tensor)
             for i in range(len(string)):
-                assert string[i] in self.chars, 'character {0} not found in self.chars = {1}.'.format(string[i], self.chars)
+                assert string[i] in self.chars, \
+                        'character {0} not found in self.chars = {1}.'.format(string[i], self.chars)
                 tensor[i] = self.chars.index(string[i])
 
         return Variable(tensor)
 
-    def get_sample(self, init_string = "\n", max_length = 250, temperature = 0.8):
+    def get_sample(self, init_string="SOP", max_length=250, temperature=0.8):
 
         init_words = init_string.split(' ')
 
         assert all([word in self.word2i for word in init_words]), \
             'The initial string ({0}) contains word(s) not in the vocabulary.'.format(init_string)
 
-        h_word = (Variable(torch.zeros(self.word_num_layers, 1, self.word_hidden_size).type(self.float_tensor)),
-             Variable(torch.zeros(self.word_num_layers, 1, self.word_hidden_size).type(self.float_tensor)))
-        h_char = (Variable(torch.zeros(self.char_num_layers, 1, self.char_hidden_size).type(self.float_tensor)),
-             Variable(torch.zeros(self.char_num_layers, 1, self.char_hidden_size).type(self.float_tensor)))
+        h_word = (
+                torch.zeros(self.word_num_layers, 1, self.word_hidden_size), 
+                torch.zeros(self.word_num_layers, 1, self.word_hidden_size)
+        )
+        h_char = (
+                torch.zeros(self.char_num_layers, 1, self.char_hidden_size), 
+                torch.zeros(self.char_num_layers, 1, self.char_hidden_size)
+        )
+
+        h_word = (
+                Variable(h_word[0].type(self.float_tensor)), 
+                Variable(h_word[1].type(self.float_tensor))
+        )
+        h_char = (
+                Variable(h_char[0].type(self.float_tensor)), 
+                Variable(h_char[1].type(self.float_tensor))
+        )
 
         init_tensor = self.words_to_tensor(init_words)
         raw_predicted_words = init_words
@@ -129,12 +154,13 @@ class GatedLSTM(nn.Module):
 
         if raw_predicted_words[-1] == "EOP":
             raw_predicted_words.pop()
+        raw_predicted_words.pop(0)
 
         detagged_predicted_words = []
         previous_word = ""
 
         for word in raw_predicted_words:
-            assert word != "EOP", "EOP within predicted words."
+            assert word not in ("SOP", "EOP"), "SOP / EOP within predicted words."
             if word == "CAP":
                 pass
             elif previous_word == "CAP":
@@ -144,19 +170,26 @@ class GatedLSTM(nn.Module):
             previous_word = word
 
 
-        indices_of_linebreaks = [i for i, word in enumerate(detagged_predicted_words) if word == '\n']
+        indices_of_linebreaks = [i for i, word in enumerate(detagged_predicted_words) \
+                                                                if word == '\n']
 
         if len(indices_of_linebreaks) > 0:
             detokenized_predicted_words = detagged_predicted_words[:indices_of_linebreaks[0] + 1]
             for i in range(len(indices_of_linebreaks) - 1):
                 first = indices_of_linebreaks[i] + 1
                 second = indices_of_linebreaks[i + 1]
-                detokenized_selection = self.detokenizer.detokenize(detagged_predicted_words[first : second])
+                detokenized_selection = self.detokenizer.detokenize(
+                        detagged_predicted_words[first:second]
+                )
                 detokenized_predicted_words.extend(detokenized_selection)
                 detokenized_predicted_words.append('\n')
-            detokenized_predicted_words.extend(detagged_predicted_words[indices_of_linebreaks[-1] + 1:])
+            detokenized_predicted_words.extend(
+                    detagged_predicted_words[indices_of_linebreaks[-1] + 1:]
+            )
         else:
-            detokenized_predicted_words = self.detokenizer.detokenize(detagged_predicted_words.copy())
+            detokenized_predicted_words = self.detokenizer.detokenize(
+                    detagged_predicted_words.copy()
+            )
 
         return " ".join(detokenized_predicted_words).strip()
 
