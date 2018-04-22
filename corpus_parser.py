@@ -19,7 +19,7 @@ def parse_corpus(dataset_name):
 
     tokenizer = moses.MosesTokenizer()
     poems_split_by_words = []
-    token2i, i2token = {}, {}
+    word2i, i2word = {}, {}
 
     for poem in csv.reader(dataset_file):
         
@@ -38,10 +38,10 @@ def parse_corpus(dataset_name):
                 token = token.lower()
                 tokens.append(token)
 
-                if token not in token2i:
-                    new_index = len(i2token)
-                    token2i[token] = new_index
-                    i2token[new_index] = token
+                if token not in word2i:
+                    new_index = len(i2word)
+                    word2i[token] = new_index
+                    i2word[new_index] = token
             
             tokens.append('\n')
             poem_split_by_words.extend(tokens)
@@ -52,8 +52,8 @@ def parse_corpus(dataset_name):
     with open(dataset_path + "processed.pkl", 'wb') as file:
         pickle.dump(poems_split_by_words, file)
     with open(dataset_path + "index.pkl", 'wb') as file:
-        pickle.dump(token2i, file)
-        pickle.dump(i2token, file)
+        pickle.dump(word2i, file)
+        pickle.dump(i2word, file)
 
     print("*** Finished parsing corpus. ***")
 
