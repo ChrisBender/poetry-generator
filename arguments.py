@@ -9,12 +9,14 @@ def get_arguments(arg_type):
     if arg_type == 'parser':
 
         parser = argparse.ArgumentParser(description="Corpus Parser")
-        parser.add_argument("--dataset-name", required=True, 
+        parser.add_argument("--dataset", required=True, 
                 help="The directory name in ./data/ to be parsed.")
 
     elif arg_type == 'train':
 
         parser = argparse.ArgumentParser(description="Training")
+        parser.add_argument("--dataset", required=True,
+                help="The directory name in ./data/ to use for training.")
         parser.add_argument("--epochs", type=int, 
                 default=25, help="Number of epochs to train for.")
         parser.add_argument("--lr", type=float, 
@@ -33,6 +35,8 @@ def get_arguments(arg_type):
                 default=1, help="Print an example from the model after this number of epochs.")
         parser.add_argument("--training-testing-split", dest="training_testing_split", type=float, 
                 default=0.9, help="Fraction of examples which should be used for training.")
+        parser.add_argument("--use-glove", dest="use_glove", action="store_true",
+                default=False, help="Use GloVe word embeddings.")
         parser.add_argument("--no-cuda", dest="no_cuda", action="store_true",
                 default=False, help="Do not use GPU acceleration.")
         parser.add_argument("--verbose", action="store_true",

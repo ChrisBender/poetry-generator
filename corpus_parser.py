@@ -1,5 +1,3 @@
-import argparse
-
 import csv
 import pickle
 import nltk.tokenize.moses as moses
