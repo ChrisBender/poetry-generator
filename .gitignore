@@ -3,3 +3,10 @@
 
 # Python cache
 __pycache__
+
+# Non-Dickinson data
+data/*
+!data/dickinson/raw.csv
+
+# Models
+models/*
