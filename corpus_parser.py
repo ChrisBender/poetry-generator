@@ -4,9 +4,9 @@ import nltk.tokenize.moses as moses
 
 from arguments import get_arguments
 
-def parse_corpus(dataset_name):
+def parse_corpus(dataset):
 
-    dataset_path = "data/" + dataset_name + "/"
+    dataset_path = "data/" + dataset + "/"
     try:
         dataset_file = open(dataset_path + "raw.csv")
     except OSError:
@@ -17,7 +17,8 @@ def parse_corpus(dataset_name):
 
     tokenizer = moses.MosesTokenizer()
     poems_split_by_words = []
-    word2i, i2word = {}, {}
+    word2i = {"SOP" : 0, "EOP" : 1, "CAP" : 2, '\n' : 3}
+    i2word = {0 : "SOP", 1 : "EOP", 2 : "CAP", 3 : '\n'}
 
     for poem in csv.reader(dataset_file):
         
@@ -58,7 +59,7 @@ def parse_corpus(dataset_name):
 
 def main():
     args = get_arguments('parser') 
-    parse_corpus(args.dataset_name)
+    parse_corpus(args.dataset)
 
 
 if __name__ == "__main__":
