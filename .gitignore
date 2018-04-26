@@ -4,8 +4,10 @@
 # Python cache
 __pycache__
 
-# Non-Dickinson data and models
-data/**
+# Non-Dickinson data
+data/*
 !data/dickinson
-models/**
-!models/dickinson
+!data/dickinson/**
+
+# Models
+models/*
