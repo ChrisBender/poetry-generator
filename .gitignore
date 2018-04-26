@@ -5,7 +5,7 @@
 __pycache__
 
 # Non-Dickinson data and models
-data/*
-!data/dickinson/*
-models/*
-!models/dickinson/*
+data/**
+!data/dickinson
+models/**
+!models/dickinson
