@@ -87,7 +87,8 @@ class GatedLSTM(nn.Module):
     def words_to_tensor(self, words):
         tensor = torch.zeros(len(words)).type(self.long_tensor)
         for i in range(len(words)):
-            assert words[i] in self.word2i, "Failed to recognize word {0} in word2i.".format(words[i])
+            assert words[i] in self.word2i, \
+                    "Failed to recognize word {0} in word2i.".format(repr(words[i]))
             tensor[i] = self.word2i[words[i]]
         return Variable(tensor)
 
@@ -107,9 +108,9 @@ class GatedLSTM(nn.Module):
 
         return Variable(tensor)
 
-    def split_poem(poem):
-        input = net.words_to_tensor(poem[:-1])
-        output = net.words_to_tensor(poem[1:])
+    def split_poem(self, poem):
+        input = self.words_to_tensor(poem[:-1])
+        output = self.words_to_tensor(poem[1:])
         return input, output
 
     def get_sample(self, init_string="SOP", max_length=250, temperature=0.8):

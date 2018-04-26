@@ -1,6 +1,6 @@
 import argparse
 
-ARG_TYPES = ['parser', 'train', 'eval']
+ARG_TYPES = ['parser', 'train', 'generate']
 
 def get_arguments(arg_type):
 
@@ -45,9 +45,15 @@ def get_arguments(arg_type):
     elif arg_type == 'generate':
 
         parser=argparse.ArgumentParser(description="Generation")
+        parser.add_argument("--dataset", required=True,
+                help="The directory name in ./data/ to use for generation.")
         parser.add_argument("--num-samples", dest="num_samples", type=int,
                 default=1, help="Number of samples to be generated from the model.")
-
-        pass
+        parser.add_argument("--init-string", dest="init_string", type=str,
+                default="SOP", help="String with which to start the poems.")
+        parser.add_argument("--max-length", dest="max_length", type=int,
+                default=250, help="Maximum possible length of a poem.")
+        parser.add_argument("--temperature", type=float,
+                default=0.8, help="Temperature of the probability distribution over tokens.")
 
     return parser.parse_args()
