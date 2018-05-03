@@ -31,16 +31,18 @@ def get_arguments(arg_type):
                 default=3, help="Number of layers in the word LSTM.")
         parser.add_argument("--char-num-layers", dest="char_num_layers", type=int, 
                 default=3, help="Number of layers in the char LSTM.")
-        parser.add_argument("--print-example-every", dest="print_example_every", type=int, 
-                default=1, help="Print an example from the model after this number of epochs.")
+        parser.add_argument("--loss-every", dest="loss_every", type=int,
+                default=10, help="Print the training loss after this number of steps.")
+        parser.add_argument("--example-every", dest="example_every", type=int, 
+                default=100, help="Print an example from the model after this number of steps.")
+        parser.add_argument("--eval-every", dest="eval_every", type=int,
+                default=100, help="Print the validation loss after this number of steps.")
         parser.add_argument("--training-testing-split", dest="training_testing_split", type=float, 
                 default=0.9, help="Fraction of examples which should be used for training.")
         parser.add_argument("--use-glove", dest="use_glove", action="store_true",
                 default=False, help="Use GloVe word embeddings.")
         parser.add_argument("--no-cuda", dest="no_cuda", action="store_true",
                 default=False, help="Do not use GPU acceleration.")
-        parser.add_argument("--verbose", action="store_true",
-                default=False, help="Increase verbosity of the output.")
 
     elif arg_type == 'generate':
 

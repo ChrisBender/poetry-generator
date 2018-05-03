@@ -13,6 +13,10 @@ import os
 
 def train(net, criterion, optimizer, input, output, update_model=True):
 
+    print("!" * 30)
+    print(input.shape)
+    print(output.shape)
+
     total_length = input.size()[0]
     # h = Variable(torch.zeros(num_layers, 1, hidden_size).type(float_tensor))
     h_word = (torch.zeros(net.word_num_layers, 1, net.word_hidden_size).type(net.float_tensor),
@@ -79,41 +83,27 @@ def main():
     
     for epoch in range(args.epochs):
     
-        total_loss, total_time = 0, 0
-        start_time = time.time()
-    
-        i = 0
-        for input, output in split_training_poems:
-            i += 1
-            if args.verbose and (training_num_poems < 10 or i % (training_num_poems // 10) == 0):
-                print("{0}% done for training epoch {1} of {2}.".format(
-                    int(100 * i / training_num_poems), epoch + 1, args.epochs)
-                )
-            total_loss += train(net, criterion, optimizer, input, output)
+        for i, (input, output) in enumerate(split_training_poems):
 
-        total_time += (time.time() - start_time)
-    
-        if epoch % args.print_example_every == args.print_example_every - 1:
-            testing_losses = [
-                    train(net, criterion, optimizer, 
-                        split_poem[0], split_poem[1], update_model=False) 
-                    for split_poem in split_testing_poems
-            ]
-            testing_loss = sum(testing_losses) / len(testing_losses)
-    
-            if args.verbose:
-                print("*" * 30)
+            loss = train(net, criterion, optimizer, input, output)
 
-            print("(epoch, training_loss, testing_loss, time) = ({0}, {1}, {2}, {3})".format(
-                epoch + 1,
-                total_loss / (len(split_training_poems) * args.print_example_every),
-                testing_loss, 
-                total_time / args.print_example_every
-            ))
+            if i % args.loss_every == args.loss_every - 1:
+                print("Step {0}, Loss {1}".format(epoch * len(split_training_poems) + i, loss))
 
-            if args.verbose:
-                print("Sample:")
+            if i % args.example_every == args.example_every - 1:
+                print("Example:")
                 print(repr(net.get_sample()))
+                print("\n")
+
+            if i % args.eval_every == args.eval_every - 1:
+                testing_losses = [
+                        train(net, criterion, optimizer, 
+                            split_poem[0], split_poem[1], update_model=False) 
+                        for split_poem in split_testing_poems
+                ]
+                testing_loss = sum(testing_losses) / len(testing_losses)
+                print("Validation Loss {0}".format(testing_loss))
+
     
     checkpoint = {
             'model' : net.state_dict(), 
